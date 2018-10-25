@@ -1,6 +1,6 @@
 {
   "name": "axios-fetch-client",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "axios fetch wrapper for browser",
   "main": "src/index.js",
   "repository": {
@@ -15,6 +15,6 @@
   "dependencies": {
     "axios": "^0.18.0",
     "blueimp-md5": "^2.10.0",
-    "querystring": "^0.2.0"
+    "query-string": "^6.2.0"
   }
 }

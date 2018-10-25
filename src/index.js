@@ -1,5 +1,5 @@
 const axios = require('axios')
-const qs = require('querystring')
+const qs = require('query-string')
 const md5 = require('blueimp-md5')
 
 let signatureConfig = {}
@@ -63,9 +63,17 @@ instance.interceptors.request.use((config) => {
 	if (need) {
 		const timestamp = Date.now()
 
+		let query = {}
+		const array = config.url.split('?')
+		if (array.length > 1) {
+			query = qs.parse(array[1])
+		}
+		const data = config.data || {}
+		const params = config.params || {}
+
 		// signature
 		const signature = sign(
-			Object.assign({v_user: interceptorData.user, v_timestamp: timestamp}, config.params),
+			Object.assign({v_user: interceptorData.user, v_timestamp: timestamp}, data, params, query),
 			interceptorData.token
 		)
 
