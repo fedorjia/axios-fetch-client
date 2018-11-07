@@ -2,8 +2,6 @@ const axios = require('axios')
 const qs = require('query-string')
 const md5 = require('blueimp-md5')
 
-let signatureConfig = {}
-
 /**
  * sinature
  */
@@ -95,11 +93,10 @@ instance.interceptors.request.use((config) => {
  */
 instance.interceptors.response.use((res) => {
 	const data = res.data;
-	if (data.status !== 22000) {
-		return Promise.reject({status: data.status, body: data.body})
+	if (data.status !== 200) {
+		return Promise.reject({status: data.status, body: data.body, message: data.message})
 	}
 	return data.body
-	// return Promise.resolve({status: data.status, body: data.body, timestamp: Date.now()})
 }, (err) => {
 	let errorMessage = err.message
 	let status = -1
@@ -116,7 +113,7 @@ instance.interceptors.response.use((res) => {
 			}
 		}
 	}
-	return Promise.reject({status: status, body: errorMessage})
+	return Promise.reject({status: status, body: null, message: errorMessage})
 });
 
 /**
