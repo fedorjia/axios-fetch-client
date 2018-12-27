@@ -1,6 +1,6 @@
-const axios = require('axios')
-const qs = require('query-string')
-const md5 = require('blueimp-md5')
+import axios from 'axios'
+import qs from 'query-string'
+import md5 from 'blueimp-md5'
 
 /**
  * sinature
@@ -23,134 +23,183 @@ const sign = function (data, key) {
 	return md5(str).toUpperCase()
 }
 
-
-const excludes = ['/favicon.ico', '/api/anon']
-
-let interceptorData = {}
-
-const instance = axios.create({
-	timeout: 6000,
-	withCredentials: false,
-	// headers: {
-	// 	'Accept': 'application/json, text/plain, */*',
-	// 	'Content-Type': 'application/json'
-	// 	// 'Access-Control-Allow-Origin': '*'
-	// },
-
-	// transformResponse: [function(data) {
-	// 	return JSON.parse(data);
-	// }],
-
-	// validateStatus: function (status) {
-	// 	return status >= 200 && status < 300
-	// }
-});
+const defaults = {
+	baseURL: '',
+	basePath: '',
+	headers: {}
+}
 
 /**
- * interceptor for request
+ * Fetch
  */
-instance.interceptors.request.use((config) => {
-	let need = true
-	for (let exclude of excludes) {
-		if (config.url.startsWith(exclude)) {
-			need = false
-			break
-		}
+class Fetch {
+	constructor() {
+		this.option = defaults
+
+		this.axiosInstance = axios.create({
+			timeout: 6000,
+			withCredentials: false,
+			headers: {
+				'Accept': 'application/json, text/plain, */*',
+				'Content-Type': 'application/json'
+				// 'Access-Control-Allow-Origin': '*'
+			},
+
+			// transformResponse: [function(data) {
+			// 	return JSON.parse(data);
+			// }],
+
+			// validateStatus: function (status) {
+			// 	return status >= 200 && status < 300
+			// }
+		});
 	}
 
-	if (need) {
-		const timestamp = Date.now()
-
-		let query = {}
-		const array = config.url.split('?')
-		if (array.length > 1) {
-			query = qs.parse(array[1])
-		}
-		const data = config.data || {}
-		const params = config.params || {}
-
-		// signature
-		const signature = sign(
-			Object.assign({v_user: interceptorData.user, v_timestamp: timestamp}, data, params, query),
-			interceptorData.token
-		)
-
-		// headers
-		config.headers = {
-			v_token: interceptorData.token,
-			v_signature: signature,
-			v_timestamp: timestamp
-		}
+	addRequestInterceptor(func) {
+		this.axiosInstance.interceptors.request.use(func)
 	}
 
-	return config
-}, (err) => {
-	return Promise.reject(err);
-});
-
-/**
- * interceptor for response
- */
-instance.interceptors.response.use((res) => {
-	const data = res.data;
-	if (data.status !== 200) {
-		return Promise.reject({status: data.status, body: data.body, message: data.message})
+	addResponseInterceptor(func) {
+		this.axiosInstance.interceptors.response.use(func)
 	}
-	return data.body
-}, (err) => {
-	let errorMessage = err.message
-	let status = -1
-	if (err.response) {
-		status = err.response.status
-		switch (err.response.status) {
-			case 404: {
-				errorMessage = '404 not found'
-				break
+
+	/**
+	 * default interceptor for request
+	 */
+	addDefaultRequestInterceptor() {
+		this.axiosInstance.interceptors.request.use((config) => {
+			let need = Object.keys(this.option.extra).length > 0
+
+			if (need) {
+				const timestamp = Date.now()
+
+				let query = {}
+				const array = config.url.split('?')
+				if (array.length > 1) {
+					query = qs.parse(array[1])
+				}
+				const data = config.data || {}
+				const params = config.params || {}
+
+				// signature
+				const signature = sign(
+					Object.assign({
+						__url__: config.url,
+						__timestamp__: timestamp
+					}, data, params, query),
+					this.option.extra.token
+				)
+
+				// headers
+				config.headers = {
+					h_token: this.option.extra.token,
+					h_nonce: this.option.extra.nonce,
+					h_signature: signature,
+					h_timestamp: timestamp
+				}
 			}
-			case 500: {
-				errorMessage = '500 internal error'
-				break
+
+			return config
+		}, (err) => {
+			return Promise.reject(err)
+		})
+	}
+
+	/**
+	 * default interceptor for response
+	 */
+	addDefaultResponseInterceptor() {
+		this.axiosInstance.interceptors.response.use((res) => {
+			const data = res.data;
+			if (data.status !== 200) {
+				return Promise.reject({status: data.status, body: data.body, message: data.message})
 			}
+			return data.body
+		}, (err) => {
+			let errorMessage = err.message
+			let status = -1
+			if (err.response) {
+				status = err.response.status
+				switch (err.response.status) {
+					case 404: {
+						errorMessage = '404 not found'
+						break
+					}
+					case 500: {
+						errorMessage = '500 internal error'
+						break
+					}
+				}
+			}
+			return Promise.reject({status: status, body: null, message: errorMessage})
+		})
+	}
+
+	setRequestBaseURL(baseURL) {
+		this.option.baseURL = baseURL
+	}
+
+	setRequestBasePath(basePath) {
+		this.option.basePath = basePath
+	}
+
+	setRequestOption(option) {
+		if (option.headers) {
+			this.addRequestHeaders(option.headers)
+			delete option.headers
+		}
+		Object.assign(this.option, option)
+	}
+	
+	addRequestHeaders(headers = {}) {
+		this.option.headers = {
+			...this.option.headers,
+			headers
 		}
 	}
-	return Promise.reject({status: status, body: null, message: errorMessage})
-});
 
-/**
- * fetch methods
- */
-module.exports = {
-	injectToInterceptor (user, token) {
-		interceptorData = {user, token}
-	},
+	getRequestHeaders() {
+		return this.option.headers
+	}
+
+	setRequestExtra(extra = {}) {
+		if (!extra.token) {
+			throw new Error('token required in extra')
+		}
+		if (!extra.nonce) {
+			throw new Error('nonce required in extra')
+		}
+		this.option.extra = extra
+	}
 
 	async raw(option) {
 		return axios(option)
-	},
+	}
 
 	async request(option) {
-		return await instance(option)
-	},
+		option.url = `${this.option.baseURL}${this.option.basePath}`
+		return await this.axiosInstance(option)
+	}
 
 	async get(url, params = {}) {
 		return this.request({method: 'get', url, params})
-	},
+	}
 
 	async post(url, params = {}) {
 		return this.request({method: 'post', url, data: params})
-	},
+	}
 
 	async put(url, params = {}) {
 		return this.request({method: 'put', url, data: params})
-	},
+	}
 
 	async patch(url, params = {}) {
 		return this.request({method: 'patch', url, data: params})
-	},
+	}
 
 	async delete(url, params = {}) {
 		return this.request({method: 'delete', url, data: params})
-	},
+	}
 
 	async all(items) {
 		if(!Array.isArray(items)) {
@@ -167,3 +216,5 @@ module.exports = {
 		return await axios.all(task)
 	}
 }
+
+module.exports = new Fetch()
