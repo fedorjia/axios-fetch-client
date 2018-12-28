@@ -26,7 +26,8 @@ const sign = function (data, key) {
 const defaults = {
 	baseURL: '',
 	basePath: '',
-	headers: {}
+	headers: {},
+	auth: {}
 }
 
 /**
@@ -68,8 +69,7 @@ class Fetch {
 	 */
 	addDefaultRequestInterceptor() {
 		this.axiosInstance.interceptors.request.use((config) => {
-			let need = Object.keys(this.option.extra).length > 0
-
+			let need = Object.keys(this.option.auth).length > 0
 			if (need) {
 				const timestamp = Date.now()
 
@@ -84,16 +84,15 @@ class Fetch {
 				// signature
 				const signature = sign(
 					Object.assign({
-						__url__: config.url,
 						__timestamp__: timestamp
 					}, data, params, query),
-					this.option.extra.token
+					this.option.auth.token
 				)
 
 				// headers
 				config.headers = {
-					h_token: this.option.extra.token,
-					h_nonce: this.option.extra.nonce,
+					h_token: this.option.auth.token,
+					h_nonce: this.option.auth.nonce,
 					h_signature: signature,
 					h_timestamp: timestamp
 				}
@@ -152,24 +151,21 @@ class Fetch {
 	}
 	
 	addRequestHeaders(headers = {}) {
-		this.option.headers = {
-			...this.option.headers,
-			headers
-		}
+		this.option.headers = Object.assign({}, this.option.headers, headers)
 	}
 
 	getRequestHeaders() {
 		return this.option.headers
 	}
 
-	setRequestExtra(extra = {}) {
-		if (!extra.token) {
-			throw new Error('token required in extra')
+	setRequestAuth(auth = {}) {
+		if (!auth.token) {
+			throw new Error('token required in auth')
 		}
-		if (!extra.nonce) {
-			throw new Error('nonce required in extra')
+		if (!auth.nonce) {
+			throw new Error('nonce required in auth')
 		}
-		this.option.extra = extra
+		this.option.auth = auth
 	}
 
 	async raw(option) {
@@ -177,7 +173,7 @@ class Fetch {
 	}
 
 	async request(option) {
-		option.url = `${this.option.baseURL}${this.option.basePath}`
+		option.url = `${this.option.baseURL}${this.option.basePath}${option.url}`
 		return await this.axiosInstance(option)
 	}
 
@@ -217,4 +213,4 @@ class Fetch {
 	}
 }
 
-module.exports = new Fetch()
+export default new Fetch()
