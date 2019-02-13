@@ -1,6 +1,6 @@
 {
   "name": "axios-fetch-client",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "axios fetch wrapper for browser",
   "main": "dist/index.js",
   "scripts": {

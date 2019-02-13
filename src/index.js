@@ -173,36 +173,36 @@ class Fetch {
 		this.option.auth = auth
 	}
 
-	async raw(option) {
+	raw(option) {
 		return axios(option)
 	}
 
-	async request(option) {
+	request(option) {
 		option.url = `${this.option.baseURL}${this.option.basePath}${option.url}`
-		return await this.axiosInstance(option)
+		return this.axiosInstance(option)
 	}
 
-	async get(url, params = {}) {
+	get(url, params = {}) {
 		return this.request({method: 'get', url, params})
 	}
 
-	async post(url, params = {}) {
+	post(url, params = {}) {
 		return this.request({method: 'post', url, data: params})
 	}
 
-	async put(url, params = {}) {
+	put(url, params = {}) {
 		return this.request({method: 'put', url, data: params})
 	}
 
-	async patch(url, params = {}) {
+	patch(url, params = {}) {
 		return this.request({method: 'patch', url, data: params})
 	}
 
-	async delete(url, params = {}) {
+	delete(url, params = {}) {
 		return this.request({method: 'delete', url, data: params})
 	}
 
-	async all(items) {
+	all(items) {
 		if(!Array.isArray(items)) {
 			if (typeof items !== 'object') {
 				throw 'argument should be object or array.'
@@ -214,7 +214,7 @@ class Fetch {
 		for(let item of items) {
 			task.push(this.request(item))
 		}
-		return await axios.all(task)
+		return axios.all(task)
 	}
 }
 
