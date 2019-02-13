@@ -1,6 +1,11 @@
-import axios from 'axios'
-import qs from 'query-string'
-import md5 from 'blueimp-md5'
+// import axios from 'axios'
+// // import qs from 'query-string'
+// import qs from 'qs'
+// import md5 from 'blueimp-md5'
+
+const axios = require('axios')
+const qs = require('qs')
+const md5 = require('blueimp-md5')
 
 /**
  * sinature
