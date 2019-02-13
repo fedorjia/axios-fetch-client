@@ -96,10 +96,10 @@ class Fetch {
 
 				// headers
 				config.headers = {
-					h_token: this.option.auth.token,
-					h_nonce: this.option.auth.nonce,
-					h_signature: signature,
-					h_timestamp: timestamp
+					'h-token': this.option.auth.token,
+					'h-nonce': this.option.auth.nonce,
+					'h-signature': signature,
+					'h-timestamp': timestamp
 				}
 			}
 
